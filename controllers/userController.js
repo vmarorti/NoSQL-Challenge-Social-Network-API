@@ -11,9 +11,9 @@ module.exports = {
     }
   },
   // Get a single user
-  async getOneuser(req, res) {
+  async getOneUser(req, res) {
     try {
-      const user = await User.findOne({ _id: req.params.userId }).populate('thoughts');
+      const user = await User.findOne({ _id: req.params.userId }).populate('friends').populate('thoughts');
       res.status(200).json(user);
     } catch (err) {
       res.status(500).json(err);
@@ -36,7 +36,7 @@ module.exports = {
             {runValidators: true, new:true}
         );
         if(!updateUser){
-            return res.status(400).json({message: "not user found"});
+            return res.status(400).json({message: "User not found"});
         }
         res.status(200).json({message: "user updated!"});
     }catch(err){
