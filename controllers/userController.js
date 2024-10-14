@@ -1,97 +1,95 @@
-const { ObjectId } = require('mongoose').Types;
 const { User, Thought } = require('../models');
-
-// Aggregate function to get the number of users overall
-const userCount = async () => {
-  const numberOfUsers = await User.aggregate()
-    .count('userCount');
-  return numberOfusers;
-}
 
 module.exports = {
   // Get all users
-  async getUsers(req, res) {
+  async getAllUsers(req, res) {
     try {
       const users = await User.find();
-
-      const userObj = {
-        users,
-        userCount: await userCount(),
-      };
-
-      res.json(userObj);
+      res.status(200).json(users);
     } catch (err) {
-      console.log(err);
-      return res.status(500).json(err);
+      res.status(500).json(err);
     }
   },
   // Get a single user
-  async getSingleuser(req, res) {
+  async getOneuser(req, res) {
     try {
-      const user = await User.findOne({ _id: req.params.userId })
-        .select('-__v');
-
-      if (!user) {
-        return res.status(404).json({ message: 'No user with that ID' })
-      }
-
-      res.json(user);
+      const user = await User.findOne({ _id: req.params.userId }).populate('thoughts');
+      res.status(200).json(user);
     } catch (err) {
-      console.log(err);
-      return res.status(500).json(err);
+      res.status(500).json(err);
     }
   },
   // create a new user
   async createUser(req, res) {
     try {
-      const user = await User.create(req.body);
-      res.json(user);
+      const newUser = await User.create(req.body);
+      res.status(200).json(newUser);
     } catch (err) {
       res.status(500).json(err);
     }
   },
 
+  async updateUser(req,res){
+    try{
+        const updateUser = await User.findOneAndUpdate({_id: req.params.userId},
+            {$set: req.body},
+            {runValidators: true, new:true}
+        );
+        if(!updateUser){
+            return res.status(400).json({message: "not user found"});
+        }
+        res.status(200).json({message: "user updated!"});
+    }catch(err){
+        res.status(500).json(err);
+    }
+},
+
+async deleteUser(req,res){
+  try{
+      const deleteUser = await User.findOneAndDelete({_id: req.params.userId});
+      if(!deleteUser){
+          return res.status(400).json({message: "No user found"});
+      }
+      await Thought.deleteMany({_id: {$in: deleteUser.thoughts}});
+      res.status(200).json({message: "User and all toughts deleted"});
+  }catch(err){
+      res.status(500).json(err);
+  }
+},
+
   // Add friend to a user
   async addFriend(req, res) {
-    console.log('You are adding a friend');
-    console.log(req.body);
-
     try {
-      const user = await user.findOneAndUpdate(
+      const addFriend = await User.findOneAndUpdate(
         { _id: req.params.userId },
-        { $addToSet: { friend: req.body } },
-        { runValidators: true, new: true }
+        { $addToSet: { friends: req.params.friendId }},
+        { new: true }
       );
 
-      if (!user) {
-        return res
-          .status(404)
-          .json({ message: 'No user found with that ID :(' });
+      if (!addFriend) {
+        return res.status(400).json({ message: 'No user found with that ID'});
       }
-
-      res.json(user);
+      res.status(200).json({ message: `you now have ${addFreind.freindCount} freind(s)!`});
     } catch (err) {
       res.status(500).json(err);
     }
   },
   // Remove friend 
-  async removeFriend(req, res) {
+  async deleteFriend(req, res) {
     try {
-      const user = await User.findOneAndUpdate(
+      const deleteFriend = await User.findOneAndUpdate(
         { _id: req.params.userId },
-        { $pull: { friend: { friendId: req.params.friendId } } },
-        { runValidators: true, new: true }
+        { $pull: { friends: req.params.friendId } },
+        {new: true}
       );
-
-      if (!user) {
-        return res
-          .status(404)
-          .json({ message: 'No user found with that ID :(' });
+      console.log(deleteFriend)
+      console.log(req.params.friendId)
+      if(!deleteFriend){
+          return res.status(400).json({message: "No user found"});
       }
-
-      res.json(user);
-    } catch (err) {
+      res.status(200).json(deleteFriend);
+  }catch(err){
       res.status(500).json(err);
-    }
-  },
-};
+  }
+}
+}
